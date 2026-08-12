@@ -1,50 +1,23 @@
-# ============================================================
-#  MIB Test App  -  enterprise-grade single web app
-#  Deployed via Portainer GitOps from GitHub.
-#  Demonstrates: health checks, env vars, persistent volume,
-#  private network, resource limits, restart policy, logging.
-# ============================================================
-
 services:
   mibtestapp:
-    # Ready-made image (no build needed) - nginx serving static content
     image: nginx:1.27-alpine
     container_name: mibtestapp
-
-    # Self-healing: restart unless an operator deliberately stops it
     restart: unless-stopped
-
-    # Host port 8095 -> container port 80. Change 8095 if it clashes.
     ports:
       - "8095:80"
-
-    # Environment variables (read by the container / app config)
     environment:
       - APP_NAME=MIB Test App
       - APP_ENV=testing
       - TZ=Indian/Maldives
-
-    # Persistent + config volumes:
-    #  - named volume 'mibtestapp_logs' survives redeploys (nginx logs)
-    #  - static site content served from the repo (read-only)
-    #  - a custom nginx conf that adds a /health endpoint (read-only)
     volumes:
       - mibtestapp_logs:/var/log/nginx
       - ./html:/usr/share/nginx/html:ro
-      - ./nginx-default.conf:/etc/nginx/conf.d/default.conf:ro
-
-    # Health check: Docker probes the app itself, not just the process.
-    # Marks the container 'unhealthy' if /health stops responding.
     healthcheck:
-      test: ["CMD-SHELL", "wget -q -O /dev/null http://localhost/health || exit 1"]
+      test: ["CMD-SHELL", "wget -q -O /dev/null http://localhost/ || exit 1"]
       interval: 30s
       timeout: 5s
       retries: 3
       start_period: 10s
-
-    # Resource limits: cap CPU/memory so a runaway container can't
-    # starve the host. Reservations = guaranteed minimum.
-    # (deploy.resources is honoured by 'docker compose up' since v2.17)
     deploy:
       resources:
         limits:
@@ -53,24 +26,17 @@ services:
         reservations:
           cpus: "0.10"
           memory: 32M
-
-    # Log rotation: keep at most 3 files of 10MB each, so container
-    # logs can't fill the disk.
     logging:
       driver: json-file
       options:
         max-size: "10m"
         max-file: "3"
-
-    # Attach to the private app network defined below
     networks:
       - mibtest_net
 
-# Named volume for persistent nginx logs (survives container recreation)
 volumes:
   mibtestapp_logs:
 
-# Private bridge network - isolates this stack's traffic
 networks:
   mibtest_net:
     driver: bridge
