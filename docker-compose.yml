@@ -11,7 +11,7 @@ services:
       - TZ=Indian/Maldives
     volumes:
       - mibtestapp_logs:/var/log/nginx
-      - ./html:/usr/share/nginx/html:ro
+      - ./index.html:/usr/share/nginx/html/index.html:ro
     healthcheck:
       test: ["CMD-SHELL", "wget -q -O /dev/null http://localhost/ || exit 1"]
       interval: 30s
