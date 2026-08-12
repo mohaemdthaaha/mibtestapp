@@ -1,0 +1,157 @@
+================================================================================
+ MIB TEST APP  -  Enterprise GitOps test via Portainer
+ Repo: https://github.com/mohaemdthaaha/mibtestapp
+ Goal: deploy a production-shaped web app from GitHub, fully via Portainer.
+================================================================================
+
+
+WHAT THIS STACK DEMONSTRATES (why it's "enterprise level")
+--------------------------------------------------------------------------------
+ Unlike a bare nginx, this stack includes the things a real deployment needs:
+
+   Health check      - Docker probes /health; marks container unhealthy if it
+                       stops responding (not just "is the process alive").
+   Environment vars  - APP_NAME, APP_ENV, TZ passed into the container.
+   Persistent volume - nginx logs survive container recreation.
+   Config mount      - custom nginx conf (adds /health) mounted read-only.
+   Private network   - isolated bridge network for the stack.
+   Resource limits   - CPU/memory caps so a runaway container can't starve host.
+   Restart policy    - unless-stopped = self-healing.
+   Log rotation      - max 3 files x 10MB, so logs can't fill the disk.
+
+
+FILES IN THE REPO
+--------------------------------------------------------------------------------
+   docker-compose.yml    - the stack definition (the important one)
+   nginx-default.conf    - nginx config that adds the /health endpoint
+   html/index.html       - the landing page served by the app
+
+
+================================================================================
+ PART A - CREATE THE GITHUB REPO AND ADD FILES
+================================================================================
+
+--- A1 - Create the repo on GitHub (website) --------------------------------
+ 1. github.com -> New repository
+ 2. Name: mibtestapp
+ 3. Public
+ 4. Do NOT add a README (keeps it clean)
+ 5. Create repository
+
+--- A2 - Add the three files -------------------------------------------------
+ EASIEST (website): for each file, Add file -> Create new file, type the
+ filename EXACTLY (including the html/ folder for index.html), paste contents,
+ commit to main.
+
+   File 1 name:  docker-compose.yml
+   File 2 name:  nginx-default.conf
+   File 3 name:  html/index.html    (typing html/ creates the folder)
+
+ OR (from a VM with git):
+   mkdir -p mibtestapp/html
+   # copy the three files into place, then:
+   cd mibtestapp
+   git init
+   git add .
+   git commit -m "enterprise test app"
+   git branch -M main
+   git remote add origin https://github.com/mohaemdthaaha/mibtestapp.git
+   git push -u origin main       # password = GitHub token
+
+--- A3 - Verify ---------------------------------------------------------------
+ On the repo page you should see:
+   docker-compose.yml
+   nginx-default.conf
+   html/  (folder, containing index.html)
+ Branch dropdown = main.
+
+
+================================================================================
+ PART B - DEPLOY IT VIA PORTAINER GITOPS
+================================================================================
+
+--- B1 - Enter the Docker environment ---------------------------------------
+ Portainer -> Home -> click the 'local' (Docker/Standalone) environment.
+
+--- B2 - Create a Git stack --------------------------------------------------
+ Left menu -> Stacks -> + Add stack
+   Name:              mibtestapp
+   Build method:      Repository
+   Authentication:    ON (if repo private; public repo can leave off)
+     Username:        mohaemdthaaha
+     Personal Access Token:  <your GitHub token>
+   Repository URL:    https://github.com/mohaemdthaaha/mibtestapp
+   Repository ref:    refs/heads/main
+   Compose path:      docker-compose.yml
+
+--- B3 - Enable automation ----------------------------------------------------
+   GitOps updates:    ON
+   Mechanism:         Polling
+   Fetch interval:    1m   (fast for testing; use 5m normally)
+   (Webhook + Re-pull image are Business Edition features - greyed on CE)
+
+--- B4 - Deploy ---------------------------------------------------------------
+   Click 'Deploy the stack'.
+   Portainer pulls the repo and starts the container.
+
+
+================================================================================
+ PART C - VERIFY IT WORKS
+================================================================================
+
+--- C1 - Container is running + HEALTHY --------------------------------------
+ In the stack view, the container 'mibtestapp' should show:
+   State: running
+   Health: healthy   (after ~10-40s, once the healthcheck passes)
+
+ Or from the host shell:
+   docker ps --filter name=mibtestapp
+   # STATUS column should say "Up ... (healthy)"
+
+--- C2 - The app serves -------------------------------------------------------
+ Browser:   http://<VM-IP>:8095
+   (use the VM's real IP, e.g. http://192.168.146.133:8095 - NOT 0.0.0.0)
+ You should see the "MIB Test App" page.
+
+ Health endpoint:
+   curl http://<VM-IP>:8095/health
+   -> {"status":"ok","service":"mibtestapp"}
+
+--- C3 - Check the enterprise features are active ----------------------------
+   docker inspect mibtestapp --format 'Health: {{.State.Health.Status}}'
+   docker inspect mibtestapp --format 'Limits: {{.HostConfig.Memory}} bytes'
+   docker volume ls | grep mibtestapp_logs
+   docker network ls | grep mibtest_net
+
+
+================================================================================
+ PART D - TEST THE AUTOMATION (the whole point)
+================================================================================
+
+--- D1 - Change something in Git --------------------------------------------
+ Edit html/index.html in GitHub (change the version line, e.g. 1.0 -> 1.1).
+ Commit to main.
+
+--- D2 - Wait for the poll ---------------------------------------------------
+ Within the fetch interval (1m), Portainer notices the change and redeploys
+ automatically. You did NOT touch Portainer.
+
+--- D3 - Confirm ------------------------------------------------------------
+ Refresh http://<VM-IP>:8095 - the page shows your change.
+ That proves the full loop:  edit in Git -> auto-redeploy -> live.
+
+
+================================================================================
+ PORTS USED
+================================================================================
+   8095  -> host port for the app (mapped to container port 80)
+   9443  -> Portainer UI (unchanged, separate from the app)
+ If 8095 clashes with something, change "8095:80" in docker-compose.yml.
+
+
+================================================================================
+ CLEAN UP (when done)
+================================================================================
+ In Portainer: Stacks -> mibtestapp -> Delete.
+ (Or keep it as a reference stack.)
+================================================================================
