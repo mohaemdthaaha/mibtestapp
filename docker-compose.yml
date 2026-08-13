@@ -11,18 +11,19 @@ services:
       - TZ=Indian/Maldives
     volumes:
       - mibtestapp_logs:/var/log/nginx
-    command:
-      - /bin/sh
-      - -c
-      - |
-        echo '<!DOCTYPE html><html><head><title>MIB Test App</title>
-        <style>body{font-family:system-ui,sans-serif;background:#0d1b2a;color:#e0e6ed;display:flex;min-height:100vh;align-items:center;justify-content:center;margin:0}
-        .card{background:#152a41;border:1px solid #24405f;border-radius:14px;padding:40px 48px;text-align:center}
-        h1{color:#4da3ff;margin:0 0 8px}.badge{display:inline-block;background:#1d9e75;color:#04342c;font-weight:600;padding:4px 12px;border-radius:20px;font-size:14px;margin:12px 0}</style></head>
-        <body><div class="card"><h1>MIB Test App</h1>
-        <div class="badge">Deployed via Portainer GitOps</div>
-        <p>Version 2.0 - edit this in Git to test auto-redeploy. this is for comfirmation</p></div></body></html>' > /usr/share/nginx/html/index.html
-        nginx -g 'daemon off;'
+       - ./index.html:/usr/share/nginx/html/index.html:ro
+    #command:
+   #   - /bin/sh
+    #  - -c
+    #  - |
+      #  echo '<!DOCTYPE html><html><head><title>MIB Test App</title>
+     #   <style>body{font-family:system-ui,sans-serif;background:#0d1b2a;color:#e0e6ed;display:flex;min-height:100vh;align-items:center;justify-content:center;margin:0}
+     #   .card{background:#152a41;border:1px solid #24405f;border-radius:14px;padding:40px 48px;text-align:center}
+     #   h1{color:#4da3ff;margin:0 0 8px}.badge{display:inline-block;background:#1d9e75;color:#04342c;font-weight:600;padding:4px 12px;border-radius:20px;font-size:14px;margin:12px 0}</style></head>
+      #  <body><div class="card"><h1>MIB Test App</h1>
+     #   <div class="badge">Deployed via Portainer GitOps</div>
+     #   <p>Version 2.0 - edit this in Git to test auto-redeploy. this is for comfirmation</p></div></body></html>' > /usr/share/nginx/html/index.html
+       # nginx -g 'daemon off;'
     healthcheck:
       test: ["CMD-SHELL", "wget -q -O /dev/null http://127.0.0.1/ || exit 1"]
       interval: 30s
