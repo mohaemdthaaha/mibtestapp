@@ -24,7 +24,7 @@ services:
         <p>Version 1.0 - edit this in Git to test auto-redeploy</p></div></body></html>' > /usr/share/nginx/html/index.html
         nginx -g 'daemon off;'
     healthcheck:
-      test: ["CMD-SHELL", "wget -q -O /dev/null http://localhost/ || exit 1"]
+      test: ["CMD-SHELL", "wget -q -O /dev/null http://127.0.0.1/ || exit 1"]
       interval: 30s
       timeout: 5s
       retries: 3
