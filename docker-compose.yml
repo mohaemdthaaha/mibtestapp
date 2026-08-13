@@ -21,7 +21,7 @@ services:
         h1{color:#4da3ff;margin:0 0 8px}.badge{display:inline-block;background:#1d9e75;color:#04342c;font-weight:600;padding:4px 12px;border-radius:20px;font-size:14px;margin:12px 0}</style></head>
         <body><div class="card"><h1>MIB Test App</h1>
         <div class="badge">Deployed via Portainer GitOps</div>
-        <p>Version 1.0 - edit this in Git to test auto-redeploy</p></div></body></html>' > /usr/share/nginx/html/index.html
+        <p>Version 2.0 - edit this in Git to test auto-redeploy. this is for comfirmation</p></div></body></html>' > /usr/share/nginx/html/index.html
         nginx -g 'daemon off;'
     healthcheck:
       test: ["CMD-SHELL", "wget -q -O /dev/null http://127.0.0.1/ || exit 1"]
